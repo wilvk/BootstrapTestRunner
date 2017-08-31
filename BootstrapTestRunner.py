@@ -112,7 +112,7 @@ class Template_mixin(object):
         <tr id='total_row'>
             <th class="col-md-3">Total</th>
             <th class="col-md-2">%(count)s</th>
-            <th class="col-md-2">%(pass)s</th>
+            <th class="col-md-2">%(passed)s</th>
             <th class="col-md-2">%(fail)s</th>
             <th class="col-md-2">%(error)s</th>
             <th class="col-md-1">&nbsp;</th>
@@ -123,14 +123,14 @@ class Template_mixin(object):
     <tr class='%(style)s'>
         <th>%(desc)s</th>
         <td>%(count)s</td>
-        <td>%(pass)s</td>
+        <td>%(passed)s</td>
         <td>%(fail)s</td>
         <td>%(error)s</td>
         <td><button type="button" class="btn btn-info" data-toggle="collapse" data-target="%(tids)s">Detail</button></td>
     </tr>
 """
     REPORT_TEST_WITH_OUTPUT_TMPL = r"""
-    <tr id='tr_%(tid)s' class='%(class)s'>
+    <tr id='tr_%(tid)s' class='%(class_name)s'>
         <td class='%(style)s'><div class='testcase'>%(desc)s</div></td>
         <td colspan='5' align='center'>
             <button type="button" class="btn btn-info btn-danger" data-toggle="collapse" data-target="#div_%(tid)s">%(status)s</button>
@@ -145,7 +145,7 @@ class Template_mixin(object):
     </tr>
 """
     REPORT_TEST_NO_OUTPUT_TMPL = r"""
-    <tr id='tr_%(tid)s' class='%(class)s'>
+    <tr id='tr_%(tid)s' class='%(class_name)s'>
         <td class='%(style)s'><div class='testcase'>%(desc)s</div></td>
         <td colspan='5' align='center'>%(status)s</td>
     </tr>
@@ -336,19 +336,20 @@ class BootstrapTestRunner(Template_mixin):
                 class_name = cls.__name__
             else:
                 class_name = '%s.%s' % (cls.__module__, cls.__name__)
-            doc = cls.__doc__ and cls.__doc__.split("\n")[0] or ''
-            desc = doc and '%s: %s' % (class_name, doc) or class_name
+            class_docstring = cls.__doc__ and cls.__doc__.split("\n")[0] or ''
+            desc = class_docstring and '%s: %s' % (class_name, class_docstring) or class_name
 
             passed_tests = []
 
             for test_id, (no_passed, t, o, e) in enumerate(cls_results):
-                if no_passed == 0: passed_tests.append("#" + self._generate_tid_string(no_passed, test_id, class_id))
+                if no_passed == 0:
+                    passed_tests.append('#tr_' + self._generate_tid_string(no_passed, test_id, class_id))
 
             row = self.REPORT_CLASS_TMPL % dict(
                 style = no_errored > 0 and 'danger' or no_failed > 0 and 'danger' or 'success',
                 desc = desc,
                 count = no_passed + no_failed + no_errored,
-                pass = no_passed,
+                passed = no_passed,
                 fail = no_failed,
                 error = no_errored,
                 class_id = 'c%s' % (class_id + 1),
@@ -356,13 +357,13 @@ class BootstrapTestRunner(Template_mixin):
             )
             rows.append(row)
 
-            for test_id, (no_passed, test_name, o, e) in enumerate(cls_results):
-                self._generate_report_test(rows, class_id, test_id, no_passed, test_name, o, e)
+            for test_id, (no_passed, test_name, output_text, error_text) in enumerate(cls_results):
+                self._generate_report_test(rows, class_id, test_id, no_passed, test_name, output_text, error_text)
 
         report = self.REPORT_TMPL % dict(
             test_list = ''.join(rows),
             count = str(result.success_count + result.failure_count + result.error_count),
-            pass = str(result.success_count),
+            passed = str(result.success_count),
             fail = str(result.failure_count),
             error = str(result.error_count),
         )
@@ -396,7 +397,7 @@ class BootstrapTestRunner(Template_mixin):
 
         row = template % dict(
             tid = test_id_string,
-            class = (no_passed == 0 and 'collapse' or 'none'),
+            class_name = (no_passed == 0 and 'collapse' or 'none'),
             style = no_passed == 2 and 'text-danger' or (no_passed == 1 and 'text-danger' or 'none'),
             desc = description,
             script = script,
