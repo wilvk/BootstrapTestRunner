@@ -53,8 +53,8 @@ class Template_mixin(object):
 </html>
 """
     STYLESHEET_TMPL = """
-<link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+<link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
 """
     HEADING_TMPL = """
@@ -71,7 +71,7 @@ class Template_mixin(object):
     REPORT_TMPL = """
     <p id='show_detail_line'>
         <button type="button" class="btn btn-info" data-toggle="collapse" data-target="%(all_test_classes)s">Toggle All</button></td>
-        <button type="button" class="btn btn-info" data-toggle="collapse" data-target="%(all_passed_test_classes)s">Toggle Failed</button></td>
+        <button type="button" class="btn btn-info" data-toggle="collapse" data-target="%(all_failed_test_classes)s">Toggle Failed</button></td>
     </p>
     <table class="table table-striped">
         <colgroup>
@@ -82,24 +82,22 @@ class Template_mixin(object):
             <col align='right' />
             <col align='right' />
         </colgroup>
-        <thead class="thead-inverse">
-            <tr id='header_row'>
-                <th class="col-md-7">Test Group/Test case</th>
-                <th class="col-md-1">Count</th>
-                <th class="col-md-1">Pass</th>
-                <th class="col-md-1">Fail</th>
-                <th class="col-md-1">Error</th>
-                <th class="col-md-1">View</th>
-            </tr>
-        </thead>
+        <tr>
+            <th class="col-md-5">Test Suite</th>
+            <th class="col-md-2">Count</th>
+            <th class="col-md-1">Pass</th>
+            <th class="col-md-1">Fail</th>
+            <th class="col-md-1">Error</th>
+            <th class="col-md-2">View</th>
+        </tr>
         %(test_list)s
-        <tr id='total_row'>
-            <th class="col-md-7">Total</th>
-            <th class="col-md-1">%(count)s</th>
+        <tr>
+            <th class="col-md-5">Total</th>
+            <th class="col-md-2">%(count)s</th>
             <th class="col-md-1">%(passed)s</th>
             <th class="col-md-1">%(fail)s</th>
             <th class="col-md-1">%(error)s</th>
-            <th class="col-md-1">&nbsp;</th>
+            <th class="col-md-2">&nbsp;</th>
         </tr>
     </table>
 """
@@ -316,19 +314,24 @@ class BootstrapTestRunner(Template_mixin):
     def _generate_report(self, result):
         test_rows = []
         all_passed_tests = []
+        all_failed_tests = []
         all_tests = []
         sorted_result = self.sortResult(result.result)
         for class_id, (test_class, class_results) in enumerate(sorted_result):
             (no_passed, no_failed, no_errored) = self.get_test_numbers_from_class_results(class_results)
             (class_name, class_docstring, description) = self.get_descriptions_from_test_class(test_class)
             passed_tests = []
+            failed_tests = []
             class_tests = []
             for test_id, (status_id, t, o, e) in enumerate(class_results):
                 test_string = '#tr_' + self._generate_tid_string(status_id, test_id, class_id)
                 if status_id == 0:
                     passed_tests.append(test_string)
+                else:
+                    failed_tests.append(test_string)
                 all_tests.append(test_string)
 
+            all_failed_tests.extend(failed_tests)
             all_passed_tests.extend(passed_tests)
             if no_errored > 0:
                 style_class = 'warning'
@@ -350,9 +353,10 @@ class BootstrapTestRunner(Template_mixin):
 
         total_test_count = result.success_count + result.failure_count + result.error_count
         all_passed_tests_string = ','.join(all_passed_tests)
+        all_failed_tests_string = ','.join(all_failed_tests)
         all_tests_string = ','.join(all_tests)
         report = self.REPORT_TMPL % dict(test_list = ''.join(test_rows), count = str(total_test_count), passed = str(result.success_count),
-                                         fail = str(result.failure_count), error = str(result.error_count), all_passed_test_classes = all_passed_tests_string,
+                                         fail = str(result.failure_count), error = str(result.error_count), all_failed_test_classes = all_failed_tests_string,
                                          all_test_classes = all_tests_string)
         return report
 
