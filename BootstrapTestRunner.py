@@ -35,7 +35,7 @@ class Template_mixin(object):
     STATUS = { 0: 'pass', 1: 'fail', 2: 'error'}
     DEFAULT_TITLE = 'Unit Test Report'
     DEFAULT_DESCRIPTION = ''
-    HTML_TMPL = r"""
+    HTML_TEMPLATE = r"""
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -52,12 +52,31 @@ class Template_mixin(object):
 </body>
 </html>
 """
-    STYLESHEET_TMPL = """
+    STYLESHEET_TEMPLATE = """
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
 <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+<script>
+$(function () {
+    var active = true;
+    $('#collapse-init').click(function () {
+        if (active) {
+            active = false;
+            $('.panel-collapse').collapse('show');
+            $('.button-title').attr('data-toggle', '');
+        } else {
+            active = true;
+            $('.panel-collapse').collapse('hide');
+            $('.button-title').attr('data-toggle', 'collapse');
+        }
+    });
+    $('#accordion').on('show.bs.collapse', function () {
+        if (active) $('#accordion .in').collapse('hide');
+    });
+});
+</script>
 """
-    HEADING_TMPL = """
+    HEADING_TEMPLATE = """
 <div class="container-fluid">
     <div>
         <h1>%(title)s</h1>
@@ -65,13 +84,12 @@ class Template_mixin(object):
         <p><strong>Test Description: </strong>%(description)s</p>
     </div>
 """
-    HEADING_ATTRIBUTE_TMPL = """
+    HEADING_ATTRIBUTE_TEMPLATE = """
     <p><strong>%(name)s:</strong> %(value)s</p>
 """
-    REPORT_TMPL = """
+    REPORT_TEMPLATE = """
     <p id='show_detail_line'>
-        <button type="button" class="btn btn-info" data-toggle="collapse" data-target="%(all_test_classes)s">Toggle All</button></td>
-        <button type="button" class="btn btn-info" data-toggle="collapse" data-target="%(all_failed_test_classes)s">Toggle Failed</button></td>
+        <button id="collapse-init" type="button" class="btn btn-info" data-toggle="collapse" data-target="%(all_test_classes)s">Toggle All</button></td>        
     </p>
     <table class="table table-striped">
         <colgroup>
@@ -101,21 +119,21 @@ class Template_mixin(object):
         </tr>
     </table>
 """
-    REPORT_CLASS_TMPL = r"""
+    REPORT_CLASS_TEMPLATE = r"""
     <tr class='%(style)s'>
         <th>%(desc)s</th>
         <td>%(count)s</td>
         <td>%(passed)s</td>
         <td>%(fail)s</td>
         <td>%(error)s</td>
-        <td><button type="button" class="btn btn-info" data-toggle="collapse" data-target="%(tids)s">Detail</button></td>
+        <td><button type="button" class="btn btn-info button-title" data-toggle="collapse" data-target="%(tids)s">Detail</button></td>
     </tr>
 """
-    REPORT_TEST_WITH_OUTPUT_TMPL = r"""
-    <tr id='tr_%(tid)s' class='%(class_name)s'>
+    REPORT_TEST_WITH_OUTPUT_TEMPLATE = r"""
+    <tr id='%(tid)s' class='%(class_name)s'>
         <td class='%(style)s'><div class='testcase'>%(desc)s</div></td>
         <td colspan='5' align='center'>
-            <button type="button" class="btn btn-info btn-danger" data-toggle="collapse" data-target="#div_%(tid)s">%(status)s</button>
+            <button type="button" class="btn btn-info btn-danger button-title" data-toggle="collapse" data-target="#div_%(tid)s">%(status)s</button>
             <div id='div_%(tid)s' class="collapse">
                 <pre>
                     <div align="left" style="position: relative;">
@@ -126,16 +144,16 @@ class Template_mixin(object):
         </td>
     </tr>
 """
-    REPORT_TEST_NO_OUTPUT_TMPL = r"""
+    REPORT_TEST_NO_OUTPUT_TEMPLATE = r"""
     <tr id='tr_%(tid)s' class='%(class_name)s'>
         <td class='%(style)s'><div>%(desc)s</div></td>
         <td colspan='5' align='center'>%(status)s</td>
     </tr>
 """
-    REPORT_TEST_OUTPUT_TMPL = r"""
+    REPORT_TEST_OUTPUT_TEMPLATE = r"""
     %(id)s:<br/><br/>%(output)s
 """
-    ENDING_TMPL = """
+    ENDING_TEMPLATE = """
     <div id='ending'>&nbsp;</div>
 </div>
 """
@@ -271,19 +289,19 @@ class BootstrapTestRunner(Template_mixin):
         heading = self._generate_heading(report_attrs)
         report = self._generate_report(result)
         ending = self._generate_ending()
-        output = self.HTML_TMPL % dict(title = saxutils.escape(self.title), generator = generator, stylesheet = stylesheet, heading = heading, report = report,
+        output = self.HTML_TEMPLATE % dict(title = saxutils.escape(self.title), generator = generator, stylesheet = stylesheet, heading = heading, report = report,
                                        ending = ending)
         self.stream.write(output.encode('utf8'))
 
     def _generate_stylesheet(self):
-        return self.STYLESHEET_TMPL
+        return self.STYLESHEET_TEMPLATE
 
     def _generate_heading(self, report_attrs):
         a_lines = []
         for name, value in report_attrs:
-            line = self.HEADING_ATTRIBUTE_TMPL % dict(name = saxutils.escape(name), value = saxutils.escape(value))
+            line = self.HEADING_ATTRIBUTE_TEMPLATE % dict(name = saxutils.escape(name), value = saxutils.escape(value))
             a_lines.append(line)
-        heading = self.HEADING_TMPL % dict(title = saxutils.escape(self.title), parameters = ''.join(a_lines), description = saxutils.escape(self.description))
+        heading = self.HEADING_TEMPLATE % dict(title = saxutils.escape(self.title), parameters = ''.join(a_lines), description = saxutils.escape(self.description))
         return heading
 
     def get_test_numbers_from_class_results(self, class_results):
@@ -343,7 +361,7 @@ class BootstrapTestRunner(Template_mixin):
             test_count = no_passed + no_failed + no_errored
             class_id_string = 'c%s' % (class_id + 1)
             test_ids_string = ','.join(passed_tests)
-            test_row = self.REPORT_CLASS_TMPL % dict(style = style_class, desc = description, count = test_count, passed = no_passed, fail = no_failed,
+            test_row = self.REPORT_CLASS_TEMPLATE % dict(style = style_class, desc = description, count = test_count, passed = no_passed, fail = no_failed,
                                                      error = no_errored, class_id = class_id_string, tids = test_ids_string)
 
             test_rows.append(test_row)
@@ -355,7 +373,7 @@ class BootstrapTestRunner(Template_mixin):
         all_passed_tests_string = ','.join(all_passed_tests)
         all_failed_tests_string = ','.join(all_failed_tests)
         all_tests_string = ','.join(all_tests)
-        report = self.REPORT_TMPL % dict(test_list = ''.join(test_rows), count = str(total_test_count), passed = str(result.success_count),
+        report = self.REPORT_TEMPLATE % dict(test_list = ''.join(test_rows), count = str(total_test_count), passed = str(result.success_count),
                                          fail = str(result.failure_count), error = str(result.error_count), all_failed_test_classes = all_failed_tests_string,
                                          all_test_classes = all_tests_string)
         return report
@@ -374,9 +392,9 @@ class BootstrapTestRunner(Template_mixin):
         else:
             description = test_name_short
         if has_output:
-            template = self.REPORT_TEST_WITH_OUTPUT_TMPL
+            template = self.REPORT_TEST_WITH_OUTPUT_TEMPLATE
         else:
-            template = self.REPORT_TEST_NO_OUTPUT_TMPL
+            template = self.REPORT_TEST_NO_OUTPUT_TEMPLATE
         if isinstance(test_output, str):
             unicode_test_output = test_output.decode('latin-1')
         else:
@@ -385,9 +403,9 @@ class BootstrapTestRunner(Template_mixin):
             unicode_exception_output = exception_output.decode('latin-1')
         else:
             unicode_exception_output = exception_output
-        script = self.REPORT_TEST_OUTPUT_TMPL % dict(id = test_id_string, output = saxutils.escape( unicode_test_output + unicode_exception_output ))
+        script = self.REPORT_TEST_OUTPUT_TEMPLATE % dict(id = test_id_string, output = saxutils.escape( unicode_test_output + unicode_exception_output ))
         if status_id == 0:
-            class_name = 'collapse'
+            class_name = 'collapse panel-collapse'
         else:
             class_name = 'none'
         if status_id == 2:
@@ -402,6 +420,7 @@ class BootstrapTestRunner(Template_mixin):
     def _generate_report_test(self, test_rows, class_id, test_id, status_id, test_name, test_output, exception_output):
         (template, test_id_string, class_name, text_style, description, script, class_id_string, has_output) = self.get_report_test_variables(
             class_id, test_id, status_id, test_name, test_output, exception_output)
+
         test_row = template % dict(tid = test_id_string, class_name = class_name, style = text_style, desc = description, script = script,
                                    cid = class_id_string, status = self.STATUS[status_id])
         test_rows.append(test_row)
@@ -409,4 +428,4 @@ class BootstrapTestRunner(Template_mixin):
             return
 
     def _generate_ending(self):
-        return self.ENDING_TMPL
+        return self.ENDING_TEMPLATE
